@@ -1,0 +1,62 @@
+[project]
+
+name = "filesystem"
+
+version = "0.1.0"
+
+description = "FileSystem provides a basic file system abstraction with multiple back-end implementations"
+
+readme = "README.md"
+
+authors = [
+    {name = "Alexandros Tzannes", email = "alexandros.tzannes@aprioriinvestments.com"},
+    {name = "Braxton McKee",  email = "braxton@aprioriinvestments.com"},
+]
+
+license = {text = "Apache-2.0"}
+
+keywords = [""]
+
+requires-python = ">=3.8"
+
+dependencies = [
+    "boto3",
+    "paramiko",
+    "pyftplib",
+    "pytz",
+]
+
+
+[project.optional-dependencies]
+
+dev = [
+    "black",
+    "flake8",
+    "flaky",
+    "moto",
+    "pre-commit",
+    "pytest",
+    "sftpserver @ git+https://github.com/APrioriInvestments/sftpserver.git@9f6893987448da731ee8fb73ef1d56fd4cce9c0e#egg=sftpserver",
+]
+
+
+[tool.black]
+
+line-length = 95
+
+target-version = ['py310']
+
+include = [
+    "filesystem",
+    "tests",
+]
+
+# 'extend-exclude' excludes files or directories in addition to the defaults
+extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+(
+  ^/.venv    # exclude a file named foo.py in the root of the project
+  | .*__pycache__/.*  # exclude __pycache__ contents
+)
+'''
