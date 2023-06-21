@@ -30,8 +30,8 @@ dependencies = [
 [project.optional-dependencies]
 
 dev = [
-    "black",
-    "flake8",
+    "black == 23.3.0",
+    "flake8 == 6.0.0",
     "flaky",
     "moto",
     "pre-commit",
