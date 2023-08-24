@@ -39,7 +39,9 @@ class FtpFileSystem(FileSystem):
         port=21,
         rootPath="",
         socketTimeout=10,
+        connectionRefreshSeconds=60,
     ):
+        super().__init__()
         if username is None:
             username = "anonymous"
         if password is None:
@@ -51,10 +53,11 @@ class FtpFileSystem(FileSystem):
         self._port = port
         self._rootPath = rootPath
         self._socketTimeout = socketTimeout
-        self._connectionRefreshSeconds = 60
+        self._connectionRefreshSeconds = connectionRefreshSeconds
 
         self._client = None
         self._clientCreationTime = None
+
         self._canUseMlsdCache = None
         self._canParseDirCache = None
         self._nlstReturnsPathPrefix = None  # None means unknown

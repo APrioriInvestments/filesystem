@@ -21,6 +21,7 @@ class SftpFileSystem(FileSystem):
         rootPath="",
         socketTimeout=10,
     ):
+        super().__init__()
         if username is None:
             username = "anonymous"
         if password is None:
