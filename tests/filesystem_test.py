@@ -1,6 +1,7 @@
 import boto3
 import io
 import os
+import pickle
 import pytest
 import time
 import unittest
@@ -29,6 +30,18 @@ from filesystem import (
 
 class FileSystemTestCases:
     MODTIME_DIFFERENCE_THRESHOLD = 0.01
+
+    def test_can_pickle(self):
+        fs = self.filesystem
+        filename = "file.txt"
+        data = b"asdf"
+        fs.set(filename, data)
+
+        sour_cucumber = pickle.dumps(fs)
+        sour_fs = pickle.loads(sour_cucumber)
+        sour_data = sour_fs.get(filename)
+
+        assert sour_data == data
 
     def test_transfer_performance(self):
         TRANSFER_TIME = 1.0
