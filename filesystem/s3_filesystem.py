@@ -61,6 +61,22 @@ class S3FileSystem(FileSystem):
         if not self.isdir(""):
             raise Exception(f"S3 prefix {keyPrefix} is not a directory in bucket {bucketname}")
 
+    def __getstate__(self):
+        """Control how pickle serializes instances.
+
+        _boto_thread_local is not serializeable and should be re-initialized
+        """
+        state = self.__dict__.copy()
+
+        del state["_boto_thread_local"]
+
+        return state
+
+    def __setstate__(self, state):
+        """Control how pickle deserializes instances."""
+        self.__dict__.update(state)
+        self._boto_thread_local = threading.local()
+
     @property
     def keyPrefix(self):
         return self._keyPrefix

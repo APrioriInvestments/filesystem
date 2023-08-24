@@ -64,6 +64,19 @@ class FtpFileSystem(FileSystem):
 
         self._logger = logging.getLogger(__name__)
 
+    def __getstate__(self):
+        """Control how pickle serializes instances.
+
+        _client is not serializable and will be instantiated upon request
+        _clientCreationTime must be reset to None
+        """
+        state = self.__dict__.copy()
+
+        state["_client"] = None
+        state["_clientCreationTime"] = None
+
+        return state
+
     @property
     def _canUseMlsd(self):
         if self._canUseMlsdCache is None:

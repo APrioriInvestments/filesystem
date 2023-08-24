@@ -39,6 +39,18 @@ class SftpFileSystem(FileSystem):
 
         self._logger = logging.getLogger(__name__)
 
+    def __getstate__(self):
+        """Control how pickle serializes instances.
+
+        _client & _transport are not serializable and will be instantiated upon request
+        """
+        state = self.__dict__.copy()
+
+        state["_client"] = None
+        state["_transport"] = None
+
+        return state
+
     @property
     def rootPath(self):
         return self._rootPath
