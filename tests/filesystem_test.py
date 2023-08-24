@@ -43,6 +43,7 @@ class FileSystemTestCases:
 
         assert sour_data == data
 
+    @pytest.mark.perf
     def test_transfer_performance(self):
         TRANSFER_TIME = 1.0
 
