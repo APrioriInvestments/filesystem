@@ -150,11 +150,11 @@ class SftpFileSystem(FileSystem):
     def get(self, path):
         if not self.isfile(path):
             raise OSError(f"Path is not a file: '{path}")
-        return self._get(path)
 
-    @reconnectOnException
-    def _get(self, path):
-        return self.getClient().open(self._rooted(path)).read()
+        buffer = io.BytesIO()
+        self._getInto(path, buffer)
+        buffer.seek(0)
+        return buffer.read()
 
     def getInto(self, path, byteStream):
         if not self.isfile(path):
@@ -167,8 +167,7 @@ class SftpFileSystem(FileSystem):
     @reconnectOnException
     def _getInto(self, path, byteStream):
         byteStream.seek(0)
-        inStream = self.getClient().open(self._rooted(path))
-        self.chunkedByteStreamPipe(inStream, byteStream)
+        self.getClient().getfo(self._rooted(path), byteStream)
 
     def getmtime(self, path):
         if not self.exists(path):
@@ -207,24 +206,19 @@ class SftpFileSystem(FileSystem):
         self._makeParentDirsIfNeeded(rootedPath)
 
         if isinstance(content, bytes):
-            self._setFromBytes(rootedPath, content)
+            byteStream = io.BytesIO(content)
 
         else:  # it should be a byte-stream
             assert isinstance(content, io.BufferedIOBase), type(content)
             byteStream = content
-            self._checkByteStreamForSet(byteStream)
-            self._setFromByteStream(rootedPath, byteStream)
 
-    @reconnectOnException
-    def _setFromBytes(self, rootedPath, content):
-        with self.getClient().file(rootedPath, "w") as file:
-            file.write(content)
+        self._checkByteStreamForSet(byteStream)
+        self._setFromByteStream(rootedPath, byteStream)
 
     @reconnectOnException
     def _setFromByteStream(self, rootedPath, byteStream):
         byteStream.seek(0)
-        with self.getClient().file(rootedPath, "w") as file:
-            self.chunkedByteStreamPipe(byteStream, file)
+        self.getClient().putfo(byteStream, rootedPath)
 
     def rm(self, path):
         if not path:
