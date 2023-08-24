@@ -38,10 +38,6 @@ class SftpFileSystem(FileSystem):
 
         self._logger = logging.getLogger(__name__)
 
-        import paramiko
-
-        self._paramiko = paramiko
-
     @property
     def rootPath(self):
         return self._rootPath
@@ -88,15 +84,17 @@ class SftpFileSystem(FileSystem):
             self._connect()
 
     def _connect(self):
+        import paramiko
+
         self._disconnect()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self._socketTimeout)
         sock.connect((self._host, self._port))
 
-        self._transport = self._paramiko.Transport(sock)
+        self._transport = paramiko.Transport(sock)
         self._transport.connect(username=self._username, password=self._password)
         assert self._transport.active
-        self._client = self._paramiko.SFTPClient.from_transport(self._transport)
+        self._client = paramiko.SFTPClient.from_transport(self._transport)
 
     def _disconnect(self):
         if self._client is not None:
