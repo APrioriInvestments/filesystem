@@ -825,12 +825,21 @@ class S3FileSystemTestCases(FileSystemTestCases):
 
 
 class MockS3FileSystemTests(S3FileSystemTestCases, unittest.TestCase):
+    AWS_ENV_VARS = (
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SECURITY_TOKEN",
+        "AWS_SESSION_TOKEN",
+    )
+
     @classmethod
     def setUpClass(cls):
-        os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-        os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-        os.environ["AWS_SECURITY_TOKEN"] = "testing"
-        os.environ["AWS_SESSION_TOKEN"] = "testing"
+        # stash the AWS environment variables we will override
+        cls.stashed_aws_environment = {var: os.environ.get(var) for var in cls.AWS_ENV_VARS}
+
+        # override some AWS environment variables to ensure we don't hit live AWS
+        for var in cls.AWS_ENV_VARS:
+            os.environ[var] = "testing"
 
         S3FileSystemTestCases.setUpClass()
         cls.mock = mock_s3()
@@ -840,6 +849,10 @@ class MockS3FileSystemTests(S3FileSystemTestCases, unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # restore AWS environment variables
+        for var in cls.AWS_ENV_VARS:
+            os.environ[var] = cls.stashed_aws_environment[var]
+
         cls.mock.stop()
 
 
