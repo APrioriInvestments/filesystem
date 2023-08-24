@@ -1,4 +1,20 @@
 import socket
+import time
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def timer(clock=None):
+    if clock is None:
+        clock = time
+
+    timer = dict(start=clock.time(), end=None, elapsed=None)
+    try:
+        yield timer
+    finally:
+        timer["end"] = clock.time()
+        timer["elapsed"] = timer["end"] - timer["start"]
 
 
 def findFreePort() -> int:

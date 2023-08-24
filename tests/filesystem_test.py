@@ -11,6 +11,7 @@ from moto import mock_s3
 
 from .ftp_server import FtpServer
 from .sftp_server import SftpServer
+from .util import timer
 
 from filesystem import (
     CachedFileSystem,
@@ -28,6 +29,47 @@ from filesystem import (
 
 class FileSystemTestCases:
     MODTIME_DIFFERENCE_THRESHOLD = 0.01
+
+    def test_transfer_performance(self):
+        TRANSFER_TIME = 1.0
+
+        fs = self.filesystem
+        data = b"a" * 10 * 1024**2  # 10MB
+        filename = "a.txt"
+
+        # 1. set from bytes
+        with timer() as upload1:
+            fs.set(filename, data)
+
+        # 2. set from stream
+        outStream = io.BytesIO(data)
+        # import pdb; pdb.set_trace()
+        with timer() as upload2:
+            fs.set(filename, outStream)
+
+        # 3. get into memory
+        with timer() as download1:
+            data = fs.get(filename)
+
+        # 4. get into bytestream
+        inStream = io.BytesIO()
+        with timer() as download2:
+            data = fs.getInto(filename, inStream)
+
+        lines = (
+            f"Upload from Memory took {upload1['elapsed']:.2f} seconds",
+            f"Upload from Stream took {upload2['elapsed']:.2f} seconds",
+            f"Download from Memory took {download1['elapsed']:.2f} seconds",
+            f"Download from Stream took {download2['elapsed']:.2f} seconds",
+        )
+
+        for line in lines:
+            print(line)
+
+        assert upload1["elapsed"] < TRANSFER_TIME
+        assert upload2["elapsed"] < TRANSFER_TIME
+        assert download1["elapsed"] < TRANSFER_TIME
+        assert download2["elapsed"] < TRANSFER_TIME
 
     def test_bytestreams(self):
         data = b"asdf"

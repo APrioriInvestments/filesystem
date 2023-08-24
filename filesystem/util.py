@@ -206,6 +206,9 @@ def retry(
 def chunkedByteStreamPipe(inStream, outStream, amount=-1, chunkSize=10 * 1024**2):
     """Write the contents of the input stream to the output stream
 
+    The goal is to enable really large transfers without having to load
+    more than roughly chunkSize into memory
+
     Args:
         inStream: the byte stream to read from
         outStream: the byte stream to write to
