@@ -716,10 +716,6 @@ class CachedFileSystemTests(FileSystemTestCases, unittest.TestCase):
 
         return subCached
 
-    def test_ReadOnlyFileSystem(self):
-        """CachedFileSystem is already ReadOnly; don't test making a RO version of it."""
-        pass
-
 
 class CloningFileSystemTests(
     FileSystemTestCases, CloningFileSystemTestCases, unittest.TestCase
