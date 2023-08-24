@@ -110,9 +110,6 @@ class SftpFileSystem(FileSystem):
     def tearDown(self):
         self._disconnect()
 
-    def __del__(self):
-        self.tearDown()
-
     def exists(self, path):
         return self._existsRooted(self._rooted(path))
 
