@@ -2,18 +2,6 @@ import os
 import pytest
 
 
-# Tests marked as perf are skipped by default and can be enabled with
-# the flag --live when calling pytest
-def pytest_addoption(parser):
-    parser.addoption(
-        "--perf",
-        action="store_true",
-        dest="perf",
-        default=False,
-        help="enable only perf tests",
-    )
-
-
 PYTEST_ENV_VAR_OVERRIDES = {
     "AWS_ACCESS_KEY_ID": "testing",
     "AWS_SECRET_ACCESS_KEY": "testing",
@@ -48,16 +36,6 @@ def restore_env_vars_from_stash(stash):
 def pytest_configure(config):
     stash_env_var_overrides(config.stash)
     override_env_vars()
-
-    def append_to_markexpr(what):
-        if hasattr(config.option, "markexpr") and getattr(config.option, "markexpr"):
-            what = f"{getattr(config.option, 'markexpr')} and {what}"
-        setattr(config.option, "markexpr", what)
-
-    if config.option.perf:
-        append_to_markexpr("perf")
-    else:
-        append_to_markexpr("not perf")
 
 
 @pytest.fixture(scope="function")

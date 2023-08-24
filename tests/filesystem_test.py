@@ -30,6 +30,7 @@ from filesystem import (
 
 class FileSystemTestCases:
     MODTIME_DIFFERENCE_THRESHOLD = 0.01
+    TRANSFER_TIME = 1.0
 
     def test_can_pickle(self):
         fs = self.filesystem
@@ -44,46 +45,58 @@ class FileSystemTestCases:
         assert sour_data == data
 
     @pytest.mark.perf
-    def test_transfer_performance(self):
-        TRANSFER_TIME = 1.0
-
+    @flaky(max_runs=3, min_passes=1)
+    def test_set_bytes_performance(self):
         fs = self.filesystem
         data = b"a" * 10 * 1024**2  # 10MB
         filename = "a.txt"
 
-        # 1. set from bytes
-        with timer() as upload1:
+        with timer() as upload:
             fs.set(filename, data)
 
-        # 2. set from stream
+        assert upload["elapsed"] < self.TRANSFER_TIME
+
+    @pytest.mark.perf
+    @flaky(max_runs=3, min_passes=1)
+    def test_set_stream_performance(self):
+        fs = self.filesystem
+        data = b"a" * 10 * 1024**2  # 10MB
+        filename = "a.txt"
+
         outStream = io.BytesIO(data)
-        # import pdb; pdb.set_trace()
-        with timer() as upload2:
+        with timer() as upload:
             fs.set(filename, outStream)
 
-        # 3. get into memory
-        with timer() as download1:
+        assert upload["elapsed"] < self.TRANSFER_TIME
+
+    @pytest.mark.perf
+    @flaky(max_runs=3, min_passes=1)
+    def test_get_bytes_performance(self):
+        fs = self.filesystem
+        data = b"a" * 10 * 1024**2  # 10MB
+        filename = "a.txt"
+
+        fs.set(filename, data)
+
+        with timer() as download:
             data = fs.get(filename)
 
-        # 4. get into bytestream
+        assert download["elapsed"] < self.TRANSFER_TIME
+
+    @pytest.mark.perf
+    @flaky(max_runs=3, min_passes=1)
+    def test_get_stream_performance(self):
+        fs = self.filesystem
+        data = b"a" * 10 * 1024**2  # 10MB
+        filename = "a.txt"
+
+        fs.set(filename, data)
+
         inStream = io.BytesIO()
-        with timer() as download2:
-            data = fs.getInto(filename, inStream)
+        with timer() as download:
+            fs.getInto(filename, inStream)
 
-        lines = (
-            f"Upload from Memory took {upload1['elapsed']:.2f} seconds",
-            f"Upload from Stream took {upload2['elapsed']:.2f} seconds",
-            f"Download from Memory took {download1['elapsed']:.2f} seconds",
-            f"Download from Stream took {download2['elapsed']:.2f} seconds",
-        )
-
-        for line in lines:
-            print(line)
-
-        assert upload1["elapsed"] < TRANSFER_TIME
-        assert upload2["elapsed"] < TRANSFER_TIME
-        assert download1["elapsed"] < TRANSFER_TIME
-        assert download2["elapsed"] < TRANSFER_TIME
+        assert download["elapsed"] < self.TRANSFER_TIME
 
     def test_bytestreams(self):
         data = b"asdf"

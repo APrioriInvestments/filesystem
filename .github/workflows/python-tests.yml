@@ -59,11 +59,13 @@ jobs:
       env:
         TRAVIS_CI: 1
       run: |
-        pytest --verbose --capture=no --log-level=info --log-cli-level=info
+        pytest -m 'not perf' \
+          --verbose --capture=no --log-level=info --log-cli-level=info
 
     - name: Run Perf Tests
       timeout-minutes: 5  # Runs in ~15s but needed a couple of minutes before the fix
       env:
         TRAVIS_CI: 1
       run: |
-        pytest --perf --verbose --capture=no --log-level=info --log-cli-level=info
+        pytest -m perf \
+          --verbose --capture=no --log-level=info --log-cli-level=info
