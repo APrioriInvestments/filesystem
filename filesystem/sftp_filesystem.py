@@ -7,7 +7,7 @@ from .util import retry
 from .filesystem_interface import FileSystem
 
 reconnectOnException = retry(
-    caughtExceptions=(OSError, socket.timeout), onExceptionMember="_connect"
+    caughtExceptions=(OSError, socket.timeout), onExceptionMember="handleException"
 )
 
 
@@ -45,6 +45,10 @@ class SftpFileSystem(FileSystem):
     @property
     def rootPath(self):
         return self._rootPath
+
+    def handleException(self, exc):
+        self._logger.info(f"Reconnecting because encountered {exc}")
+        self._connect
 
     def __eq__(self, other):
         if not isinstance(other, SftpFileSystem):

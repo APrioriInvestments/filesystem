@@ -152,7 +152,7 @@ def retry(
     *,
     retries=3,
     caughtExceptions=(Exception,),
-    onException=lambda: None,
+    onException=lambda exc: None,
     onExceptionMember=None,
 ):
     """retry decorator with optional arguments.
@@ -193,12 +193,12 @@ def retry(
                 if ix + 1 >= retries:
                     raise ExceededRetriesException(f"Exceeded {retries} retries") from e
                 else:
-                    onException()
+                    onException(e)
                     if onExceptionMember is not None:
                         if len(args) == 0:
                             raise Exception("retry decorator could not find 'self'")
                         self = args[0]
-                        getattr(self, onExceptionMember)()
+                        getattr(self, onExceptionMember)(e)
 
     return retryWrapper
 

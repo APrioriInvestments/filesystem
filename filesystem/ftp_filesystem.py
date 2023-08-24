@@ -23,7 +23,7 @@ caughtExceptions = (
 )
 
 retryOnDisconnect = retry(
-    retries=10, caughtExceptions=caughtExceptions, onExceptionMember="_disconnect"
+    retries=10, caughtExceptions=caughtExceptions, onExceptionMember="handleException"
 )
 
 
@@ -77,6 +77,10 @@ class FtpFileSystem(FileSystem):
     @property
     def rootPath(self):
         return self._rootPath
+
+    def handleException(self, exc):
+        self._logger.info(f"Reconnecting because encountered {exc}")
+        self._disconnect()
 
     def __eq__(self, other):
         if not isinstance(other, FtpFileSystem):
@@ -518,7 +522,7 @@ class FtpFileSystem(FileSystem):
                     # for fewer than 5 files it's cheaper to use the default isdir
                     filesToPermissions = self._filesToPermissions(rootedPath)
 
-                    @retry(caughtExceptions=caughtExceptions, onException=self._connect)
+                    @retry(caughtExceptions=caughtExceptions, onException=self.handleException)
                     def isdir(filepath):
                         fname = self.basename(filepath)
                         if fname in filesToPermissions:
