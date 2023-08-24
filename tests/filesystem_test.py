@@ -683,13 +683,23 @@ class InMemFilesystemTests(FileSystemTestCases, unittest.TestCase):
         assert fs.listFiles() == ["a/b/c"]
 
 
+class _WriteableCachedFileSystem(CachedFileSystem):
+    """A class to enable running our tests against CachedFileSystem."""
+
+    def rm(self, path):
+        if self.frontFileSystem.exists(path):
+            self.frontFileSystem.rm(path)
+        return self.backFileSystem.rm(path)
+
+    def set(self, path, content):
+        return self.backFileSystem.set(path, content)
+
+
 class CachedFileSystemTests(FileSystemTestCases, unittest.TestCase):
     def setUp(self):
         self.backFileSystem = TempDiskFileSystem()
         self.frontFileSystem = InMemFileSystem()
-        self.filesystem = CachedFileSystem(self.frontFileSystem, self.backFileSystem)
-
-        self.patchCachedFileSystem(self.filesystem, self.frontFileSystem, self.backFileSystem)
+        self.filesystem = _WriteableCachedFileSystem(self.frontFileSystem, self.backFileSystem)
 
     def tearDown(self):
         self.backFileSystem.tearDown()
@@ -702,23 +712,9 @@ class CachedFileSystemTests(FileSystemTestCases, unittest.TestCase):
         frontRootPath = self.frontFileSystem.joinPaths(self.frontFileSystem.rootPath, prefix)
         subFront = InMemFileSystem(frontRootPath)
 
-        subCached = CachedFileSystem(subFront, subBack)
-        self.patchCachedFileSystem(subCached, subFront, subBack)
+        subCached = _WriteableCachedFileSystem(subFront, subBack)
 
         return subCached
-
-    @staticmethod
-    def patchCachedFileSystem(cachedFileSystem, frontFileSystem, backFileSystem):
-        # patch the methods with write effects to allow running tests
-        # on this ReadOnlyFilesystem
-        cachedFileSystem.set = backFileSystem.set
-
-        def patchedRm(path):
-            if frontFileSystem.exists(path):
-                frontFileSystem.rm(path)
-            return backFileSystem.rm(path)
-
-        cachedFileSystem.rm = patchedRm
 
     def test_ReadOnlyFileSystem(self):
         """CachedFileSystem is already ReadOnly; don't test making a RO version of it."""
