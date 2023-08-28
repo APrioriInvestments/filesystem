@@ -57,7 +57,7 @@ class SftpFileSystem(FileSystem):
 
     def handleException(self, exc):
         self._logger.info(f"Reconnecting because encountered {exc}")
-        self._connect
+        self._connect()
 
     def __eq__(self, other):
         if not isinstance(other, SftpFileSystem):
