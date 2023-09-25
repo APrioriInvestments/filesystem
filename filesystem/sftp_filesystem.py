@@ -121,6 +121,28 @@ class SftpFileSystem(FileSystem):
     def tearDown(self):
         self._disconnect()
 
+    def __del__(self):
+        # best-effort to disconnect
+        if self._client is not None:
+            try:
+                self._client.close()
+
+            except Exception:
+                self.exception("INFO: Failed to close client on delete:")
+
+            finally:
+                self._client = None
+
+        if self._transport is not None:
+            try:
+                self._transport.close()
+
+            except Exception:
+                self._logger.exception("INFO: Failed to close transport on delete:")
+
+            finally:
+                self._transport = None
+
     def exists(self, path):
         return self._existsRooted(self._rooted(path))
 
