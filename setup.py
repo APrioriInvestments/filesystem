@@ -5,7 +5,7 @@ import setuptools
 INSTALL_REQUIRES = [
     "boto3",
     "paramiko",
-    "pyftplib",
+    "pyftpdlib",
     "pytz",
 ]
 
