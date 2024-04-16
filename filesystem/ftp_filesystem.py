@@ -388,7 +388,7 @@ class FtpFileSystem(FileSystem):
             lst = dict(self.getClient().mlsd(parentDir))
 
             if basename not in lst:
-                raise Exception("Can't find " + basename + " in " + repr(lst.keys())[:1024])
+                raise Exception(f"Can't find {basename} in " + repr(lst.keys())[:1024])
 
             return self._modtimeFromMetadata(lst[basename])
 
@@ -577,10 +577,10 @@ class FtpFileSystem(FileSystem):
                     result.append(filePath)
         except Exception as e:
             if isinstance(e, caughtExceptions):
-                raise FtpFileSystemCaughtException("Failed on %s", path) from e
+                raise FtpFileSystemCaughtException(f"Failed on path '{path}'") from e
 
             else:
-                raise Exception("Failed on %s", path) from e
+                raise Exception(f"Failed on path '{path}'") from e
 
     def __str__(self):
         return (
