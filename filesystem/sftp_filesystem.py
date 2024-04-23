@@ -190,14 +190,13 @@ class SftpFileSystem(FileSystem):
         if not self.isfile(path):
             raise OSError(f"Path is not a file: '{path}")
 
-        self._checkByteStreamForGet(byteStream)
-
         self._getInto(path, byteStream)
 
     @reconnectOnException
     def _getInto(self, path, byteStream):
-        byteStream.seek(0)
-        self.getClient().getfo(self._rooted(path), byteStream)
+        self._streamPositionManagement(
+            byteStream, doFun=lambda: self.getClient().getfo(self._rooted(path), byteStream)
+        )
 
     def getmtime(self, path):
         if not self.exists(path):
@@ -230,8 +229,6 @@ class SftpFileSystem(FileSystem):
             raise OSError(f"unable to make parent dirs because {directory} is a file")
 
     def set(self, path, content):
-        self._checkContentInputTypeForSet(content)
-
         rootedPath = self._rooted(path)
         self._makeParentDirsIfNeeded(rootedPath)
 
@@ -239,16 +236,15 @@ class SftpFileSystem(FileSystem):
             byteStream = io.BytesIO(content)
 
         else:  # it should be a byte-stream
-            assert isinstance(content, io.BufferedIOBase), type(content)
             byteStream = content
 
-        self._checkByteStreamForSet(byteStream)
         self._setFromByteStream(rootedPath, byteStream)
 
     @reconnectOnException
     def _setFromByteStream(self, rootedPath, byteStream):
-        byteStream.seek(0)
-        self.getClient().putfo(byteStream, rootedPath)
+        self._streamPositionManagement(
+            byteStream, doFun=lambda: self.getClient().putfo(byteStream, rootedPath)
+        )
 
     def rm(self, path):
         if not path:

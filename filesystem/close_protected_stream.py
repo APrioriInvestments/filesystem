@@ -10,10 +10,7 @@ class CloseProtectedStream(io.IOBase):
     https://github.com/boto/s3transfer/issues/80
     """
 
-    def __init__(self, stream):
-        if not isinstance(stream, io.IOBase):
-            raise TypeError(f"stream argument must be an io.IOBase, but was {type(stream)}")
-
+    def __init__(self, stream: io.IOBase):
         self._stream = stream
         self._closed = stream.closed
 
@@ -41,7 +38,14 @@ class CloseProtectedStream(io.IOBase):
         return self._stream.isatty()
 
     def readable(self):
-        return False if self._closed else self._stream.readable()
+        if self._closed:
+            return False
+        elif hasattr(self._stream, "readable"):
+            return self._stream.readable()
+        elif hasattr(self._stream, "read"):
+            return True
+        else:
+            return False
 
     def readline(self, size=-1, /):
         if self._closed:
@@ -61,7 +65,17 @@ class CloseProtectedStream(io.IOBase):
     def seekable(self):
         if self._closed:
             raise ValueError("I/O operation on closed Stream")
-        return self._stream.seekable()
+        elif hasattr(self._stream, "seekable"):
+            return self._stream.seekable()
+        elif hasattr(self._stream, "tell"):
+            try:
+                self._stream.tell()
+            except Exception:
+                return False
+            else:
+                return True
+        else:
+            return False
 
     def tell(self):
         if self._closed:

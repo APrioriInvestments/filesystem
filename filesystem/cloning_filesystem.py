@@ -1,5 +1,4 @@
 import logging
-import io
 import tempfile
 
 from .filesystem_interface import FileSystem
@@ -110,8 +109,6 @@ class CloningFileSystem(FileSystem):
             return data
 
     def getInto(self, path, byteStream):
-        self._checkByteStreamForGet(byteStream)
-
         if self.frontFileSystem.exists(path):
             self.frontFileSystem.getInto(path, byteStream)
 
@@ -128,19 +125,31 @@ class CloningFileSystem(FileSystem):
         )
 
     def set(self, path, content) -> None:
-        self._checkContentInputTypeForSet(content)
         if isinstance(content, bytes):
             self.backFileSystem.set(path, content)
             self.frontFileSystem.set(path, content)
 
         else:
-            assert isinstance(content, io.IOBase), type(content)
+            try:
+                position = content.tell()
+                seekable = True
+            except Exception:
+                position = None
+                seekable = False
 
-            self._checkByteStreamForSet(content)
-            position = content.tell()
-            self.backFileSystem.set(path, content)
-            content.seek(position)
-            self.frontFileSystem.set(path, content)
+            if seekable:
+                assert position is not None
+                self.backFileSystem.set(path, content)
+                content.seek(position)
+                self.frontFileSystem.set(path, content)
+
+            else:
+                with tempfile.SpooledTemporaryFile() as fd:
+                    self.chunkedByteStreamPipe(content, fd)
+                    fd.seek(0)
+                    self.backFileSystem.set(path, fd)
+                    fd.seek(0)
+                    self.frontFileSystem.set(path, fd)
 
     def rm(self, path) -> None:
         try:

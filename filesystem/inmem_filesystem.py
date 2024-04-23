@@ -1,4 +1,3 @@
-import io
 import random
 import string
 import time
@@ -182,7 +181,6 @@ class InMemFileSystem(FileSystem):
         return meta.contents
 
     def getInto(self, path, byteStream):
-        self._checkByteStreamForGet(byteStream)
         meta = self._walkTo(path)
         if meta.kind != _PathKind.FILE:
             raise OSError(f"Path is not a file: '{path}")
@@ -190,8 +188,6 @@ class InMemFileSystem(FileSystem):
         byteStream.write(meta.contents)
 
     def set(self, path, content) -> None:
-        self._checkContentInputTypeForSet(content)
-
         if not path:
             raise OSError(f"Cannot set '{path}'")
 
@@ -199,13 +195,13 @@ class InMemFileSystem(FileSystem):
         parentDir = self._walkTo(pathVec[:-1], createAsWeGo=True)
         filename = pathVec[-1]
 
-        if isinstance(content, io.IOBase):
-            self._checkByteStreamForSet(content)
+        if isinstance(content, bytes):
+            pass
+
+        elif hasattr(content, "read"):
             # content must be a byte-stream
             content = content.read()
 
-        elif isinstance(content, bytes):
-            pass
         else:
             raise TypeError(f"Invalid type for content argument: {type(content)}")
 

@@ -1,4 +1,3 @@
-import io
 import os
 from abc import ABC, abstractmethod
 
@@ -150,41 +149,6 @@ class FileSystem(ABC):
         return path if not path or path[-1] == FileSystem.sep else path + FileSystem.sep
 
     @staticmethod
-    def _checkByteStreamForGet(byteStream):
-        """raise exceptions if byteStream is not seekable or not at position 0.
-
-        implementations of getInto that go over the network and have retry-logic
-        need to be able to reset the byteStream in case an attempt fails half
-        way through.
-        """
-        if not hasattr(byteStream, "seekable") or not byteStream.seekable():
-            raise TypeError(
-                f"Cannot get into byte-stream that is not seekable: {type(byteStream)}"
-            )
-        if byteStream.tell() != 0:
-            raise ValueError("Cannot get into byte-stream that is not at position 0")
-
-    @staticmethod
-    def _checkContentInputTypeForSet(content):
-        if not isinstance(content, (bytes, io.IOBase)):
-            raise TypeError(f"Invalid type for content argument: {type(content)}")
-
-    @staticmethod
-    def _checkByteStreamForSet(byteStream):
-        """raise exceptions if byteStream is not seekable or not at position 0.
-
-        implementations of set that go over the network and have retry-logic
-        need to be able to reset the byteStream in case an attempt fails half
-        way through.
-        """
-        if not hasattr(byteStream, "seekable") or not byteStream.seekable():
-            raise TypeError(
-                f"Cannot set from byte-stream that is not seekable: {type(byteStream)}"
-            )
-        if byteStream.tell() != 0:
-            raise ValueError("Cannot set from byte-stream that is not at position 0")
-
-    @staticmethod
     def chunkedByteStreamPipe(inStr, outStr, amount=-1, chunkSize=None):
         if chunkSize is None:
             chunkSize = FileSystem.CHUNK_SIZE
@@ -262,12 +226,6 @@ class FileSystem(ABC):
             byteStream (BytesIO, or binary file descriptor): byteStream into
                 which to write the result*.
 
-        *ATTENTION: contents in byteStream will be overwritten.
-        Many implementations have retry logic to mitigate network errors.
-        If the byteStream is seekable (which BytesIO and files open with "wb" are),
-        this method will rewind the stream to its beginning, i.e., seek(0) to
-        enable the retry logic.
-
         Raises OSError if the path is not a valid file or is inaccessible.
         """
         pass
@@ -308,6 +266,23 @@ class FileSystem(ABC):
 
     def tearDown(self):
         pass
+
+    def _streamPositionManagement(self, stream, doFun):
+        try:
+            position = stream.tell()
+        except Exception:
+            position = None
+
+        try:
+            return doFun()
+
+        except Exception as e:
+            if position is None:
+                raise OSError("Cannot retry because stream is not seekable") from e
+
+            else:  # seekable
+                stream.seek(position)
+                raise
 
 
 class ReadOnlyFileSystem(FileSystem):

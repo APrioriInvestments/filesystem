@@ -1,4 +1,3 @@
-import io
 import os
 import tempfile
 
@@ -80,7 +79,6 @@ class DiskFileSystem(FileSystem):
         if not self.isfile(path):
             raise OSError(f"Not a file: '{path}'")
 
-        self._checkByteStreamForGet(byteStream)
         with open(self._rooted(path), "rb") as file:
             self.chunkedByteStreamPipe(file, byteStream)
 
@@ -96,14 +94,10 @@ class DiskFileSystem(FileSystem):
         return open(path, mode)
 
     def set(self, path, content) -> None:
-        self._checkContentInputTypeForSet(content)
-
         if isinstance(content, bytes):
             with self.safeOpen(self._rooted(path)) as file:
                 file.write(content)
         else:
-            assert isinstance(content, io.IOBase), type(content)
-            self._checkByteStreamForSet(content)
             with self.safeOpen(self._rooted(path)) as file:
                 self.chunkedByteStreamPipe(content, file)
 

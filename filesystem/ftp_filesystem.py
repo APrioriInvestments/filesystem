@@ -321,8 +321,6 @@ class FtpFileSystem(FileSystem):
             raise OSError(f"unable to make parent dirs because {directory} is a file")
 
     def set(self, path, content):
-        self._checkContentInputTypeForSet(content)
-
         rootedPath = self._rooted(path)
         self._makeParentDirsIfNeeded(rootedPath)
 
@@ -330,16 +328,16 @@ class FtpFileSystem(FileSystem):
             byteStream = io.BytesIO(content)
 
         else:
-            assert isinstance(content, io.IOBase), type(content)
             byteStream = content
-            self._checkByteStreamForSet(byteStream)
 
         self._setFromByteStream(rootedPath, byteStream)
 
     @retryOnDisconnect
     def _setFromByteStream(self, rootedPath, byteStream):
-        byteStream.seek(0)
-        self.getClient().storbinary("STOR " + rootedPath, byteStream)
+        self._streamPositionManagement(
+            byteStream,
+            doFun=lambda: self.getClient().storbinary("STOR " + rootedPath, byteStream),
+        )
 
     def get(self, path):
         if not self.isfile(path):
@@ -353,14 +351,16 @@ class FtpFileSystem(FileSystem):
         if not self.isfile(path):
             raise OSError(f"Path is not a file: '{path}")
 
-        self._checkByteStreamForGet(byteStream)
-
         self._getInto(path, byteStream)
 
     @retryOnDisconnect
     def _getInto(self, path, byteStream):
-        byteStream.seek(0)
-        self.getClient().retrbinary("RETR " + self._rooted(path), byteStream.write)
+        self._streamPositionManagement(
+            byteStream,
+            doFun=lambda: self.getClient().retrbinary(
+                "RETR " + self._rooted(path), byteStream.write
+            ),
+        )
 
     @retryOnDisconnect
     def rm(self, path):

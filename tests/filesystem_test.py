@@ -26,6 +26,7 @@ from filesystem import (
     WriteOnceFileSystem,
     WriteProtectedFileSystem,
 )
+from filesystem.s3_filesystem import UnseekableStream
 
 
 class FileSystemTestCases:
@@ -98,35 +99,92 @@ class FileSystemTestCases:
 
         assert download["elapsed"] < self.TRANSFER_TIME
 
-    def test_bytestreams(self):
+    def test_seekable_bytestreams(self):
         data = b"asdf"
         bs = io.BytesIO(data)
         fs = self.filesystem
-        fname = "file.txt"
 
+        fname = "file.txt"
         assert not fs.exists(fname)
+
+        # Test set operation
         fs.set(fname, bs)
         assert fs.exists(fname)
         assert fs.get(fname) == data
 
-        with pytest.raises(ValueError):
-            fs.set(fname, bs)
+        fs.set(fname, bs)
 
-        assert fs.get(fname) == data
+        assert fs.get(fname) == b""
+
+        bs.seek(2)
+        fs.set(fname, bs)
+        assert fs.get(fname) == data[2:]
 
         bs.seek(0)
         fs.set(fname, bs)
         assert fs.get(fname) == data
 
+        # Test get operation
         bsIn = io.BytesIO()
         fs.getInto(fname, bsIn)
         assert bsIn.getvalue() == data
 
-        with pytest.raises(ValueError):
-            fs.getInto(fname, bsIn)
-        assert bsIn.getvalue() == data
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data + data
 
         bsIn.seek(0)
+        bsIn.truncate(0)
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data
+
+        bsIn.seek(2)
+        bsIn.truncate(2)
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data[:2] + data
+
+    def test_unseekable_bytestreams(self):
+        data = b"asdf"
+        sbs = io.BytesIO(data)
+        bs = UnseekableStream(sbs)
+        fs = self.filesystem
+        fname = "file.txt"
+
+        with pytest.raises(io.UnsupportedOperation):
+            bs.tell()
+
+        with pytest.raises(io.UnsupportedOperation):
+            bs.seek(0)
+
+        sbs.seek(0)
+        assert sbs.tell() == 0
+
+        fname = "file.txt"
+        assert not fs.exists(fname)
+
+        # Test set operation
+        fs.set(fname, bs)
+        assert fs.exists(fname)
+        assert fs.get(fname) == data
+
+        fs.set(fname, bs)
+        assert fs.get(fname) == b""
+
+        sbs.seek(0)
+        fs.set(fname, bs)
+        assert fs.get(fname) == data
+
+        # Test get operation
+        sbsIn = io.BytesIO()
+        bsIn = UnseekableStream(sbsIn)
+
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data
+
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data + data
+
+        sbsIn.seek(0)
+        bsIn.truncate(0)
         fs.getInto(fname, bsIn)
         assert bsIn.getvalue() == data
 
@@ -626,13 +684,6 @@ class CloningFileSystemTestCases:
         assert ffs.get(fname) == data
         assert bfs.get(fname) == data
 
-        with pytest.raises(ValueError):
-            fs.set(fname, bs)
-
-        assert fs.get(fname) == data
-        assert ffs.get(fname) == data
-        assert bfs.get(fname) == data
-
         bs.seek(0)
         fs.set(fname, bs)
         assert fs.get(fname) == data
@@ -643,11 +694,11 @@ class CloningFileSystemTestCases:
         fs.getInto(fname, bsIn)
         assert bsIn.getvalue() == data
 
-        with pytest.raises(ValueError):
-            fs.getInto(fname, bsIn)
-        assert bsIn.getvalue() == data
+        fs.getInto(fname, bsIn)
+        assert bsIn.getvalue() == data + data
 
         bsIn.seek(0)
+        bsIn.truncate(0)
         fs.getInto(fname, bsIn)
         assert bsIn.getvalue() == data
 
@@ -742,6 +793,12 @@ class CachedFileSystemTests(FileSystemTestCases, unittest.TestCase):
         subCached = _WriteableCachedFileSystem(subFront, subBack)
 
         return subCached
+
+    def test_seekable_bytestreams(self):
+        pass
+
+    def test_unseekable_bytestreams(self):
+        pass
 
 
 class CloningFileSystemTests(

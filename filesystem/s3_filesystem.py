@@ -42,6 +42,23 @@ def retryIfIrrelevantFailure(f):
     return inner
 
 
+class UnseekableStream:
+    def __init__(self, stream):
+        self._stream = stream
+
+    def seekable(self):
+        return False
+
+    def seek(self, *args, **kwargs):
+        raise io.UnsupportedOperation("underlying stream is not seekable")
+
+    def tell(self, *args, **kwargs):
+        raise io.UnsupportedOperation("underlying stream is not seekable")
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
 class S3FileSystem(FileSystem):
     def __init__(self, bucketname: str, keyPrefix: str, accessKey=None, secretKey=None):
         super().__init__()
@@ -397,29 +414,25 @@ class S3FileSystem(FileSystem):
         except Exception as e:
             raise OSError(f"File not accessible: '{path}'") from e
 
-        self._checkByteStreamForGet(byteStream)
-
         key = self._pathToKey(path)
         self._getInto(key, byteStream)
 
     @retryIfIrrelevantFailure
     def _getInto(self, key, byteStream):
-        byteStream.seek(0)
-        self._getClient().download_fileobj(self._bucketname, key, byteStream)
+        stream = UnseekableStream(byteStream)
+        self._streamPositionManagement(
+            byteStream,
+            doFun=lambda: self._getClient().download_fileobj(self._bucketname, key, stream),
+        )
 
     @retryIfIrrelevantFailure
     def set(self, path, content) -> None:
-        self._checkContentInputTypeForSet(content)
-
         key = self._pathToKey(path)
         if isinstance(content, bytes):
             byteStream = CloseProtectedStream(io.BytesIO(content))
 
         else:
-            assert isinstance(content, io.IOBase), type(content)
-
             byteStream = CloseProtectedStream(content)
-            self._checkByteStreamForSet(byteStream)
 
         try:
             self._setByteStream(key, byteStream)
@@ -427,9 +440,12 @@ class S3FileSystem(FileSystem):
             raise OSError(f"Failed to set {path} with error {str(e)}") from e
 
     def _setByteStream(self, key, byteStream):
-        byteStream.seek(0, io.SEEK_END)
-        byteStream.seek(0)
-        self._getClient().upload_fileobj(byteStream, Bucket=self._bucketname, Key=key)
+        self._streamPositionManagement(
+            byteStream,
+            doFun=lambda: self._getClient().upload_fileobj(
+                byteStream, Bucket=self._bucketname, Key=key
+            ),
+        )
 
     def rm(self, path) -> None:
         try:

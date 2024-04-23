@@ -33,7 +33,7 @@ dev = [
     "black == 23.3.0",
     "flake8 == 6.0.0",
     "flaky",
-    "moto",
+    "moto < 5.0.0",
     "pre-commit",
     "pytest",
     "sftpserver @ git+https://github.com/APrioriInvestments/sftpserver.git@9f6893987448da731ee8fb73ef1d56fd4cce9c0e#egg=sftpserver",

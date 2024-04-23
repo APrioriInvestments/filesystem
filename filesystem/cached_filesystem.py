@@ -64,8 +64,6 @@ class CachedFileSystem(ReadOnlyFileSystem):
             return data
 
     def getInto(self, path, byteStream):
-        self._checkByteStreamForGet(byteStream)
-
         if self.frontFileSystem.exists(path):
             self.frontFileSystem.getInto(path, byteStream)
 
