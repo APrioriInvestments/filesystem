@@ -11,10 +11,11 @@ class CloningFileSystem(FileSystem):
     operations if a value is missing from it, and both are updated on 'set' operations.
     """
 
-    def __init__(self, frontFileSystem, backFileSystem):
+    def __init__(self, frontFileSystem, backFileSystem, spoolSize=1024**2):
         super().__init__()
         self.frontFileSystem = frontFileSystem
         self.backFileSystem = backFileSystem
+        self.spoolSize = spoolSize
 
     @staticmethod
     def make(frontFileSystemFactory, backFileSystemFactory):
@@ -36,7 +37,7 @@ class CloningFileSystem(FileSystem):
 
     def _clone(self, path):
         if not self.frontFileSystem.isfile(path) and self.backFileSystem.isfile(path):
-            with tempfile.SpooledTemporaryFile() as fd:
+            with tempfile.SpooledTemporaryFile(max_size=self.spoolSize) as fd:
                 self.backFileSystem.getInto(path, fd)
                 fd.seek(0)
                 self.frontFileSystem.set(path, fd)
@@ -144,7 +145,7 @@ class CloningFileSystem(FileSystem):
                 self.frontFileSystem.set(path, content)
 
             else:
-                with tempfile.SpooledTemporaryFile() as fd:
+                with tempfile.SpooledTemporaryFile(max_size=self.spoolSize) as fd:
                     self.chunkedByteStreamPipe(content, fd)
                     fd.seek(0)
                     self.backFileSystem.set(path, fd)
