@@ -128,7 +128,7 @@ class SftpFileSystem(FileSystem):
                 self._client.close()
 
             except Exception:
-                self.exception("INFO: Failed to close client on delete:")
+                self._logger.exception("INFO: Failed to close client on delete:")
 
             finally:
                 self._client = None
