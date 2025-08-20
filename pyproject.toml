@@ -13,7 +13,7 @@ authors = [
     {name = "Braxton McKee",  email = "braxton@aprioriinvestments.com"},
 ]
 
-license = {text = "Apache-2.0"}
+license-files = ["LICENSE"]
 
 keywords = [""]
 
