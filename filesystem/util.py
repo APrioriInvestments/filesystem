@@ -1,6 +1,7 @@
 import datetime
 import functools
 import pytz
+import time
 
 
 NYC = pytz.timezone("America/New_York")
@@ -154,6 +155,7 @@ def retry(
     caughtExceptions=(Exception,),
     onException=lambda exc: None,
     onExceptionMember=None,
+    sleepAmount=0.0,
 ):
     """retry decorator with optional arguments.
 
@@ -180,6 +182,7 @@ def retry(
             caughtExceptions=caughtExceptions,
             onException=onException,
             onExceptionMember=onExceptionMember,
+            sleepAmount=sleepAmount,
         )
 
     @functools.wraps(func)
@@ -193,6 +196,8 @@ def retry(
                 if ix + 1 >= retries:
                     raise ExceededRetriesException(f"Exceeded {retries} retries") from e
                 else:
+                    time.sleep(sleepAmount)
+
                     onException(e)
                     if onExceptionMember is not None:
                         if len(args) == 0:

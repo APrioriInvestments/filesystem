@@ -5,9 +5,13 @@ import stat
 
 from .util import retry
 from .filesystem_interface import FileSystem
+from paramiko.ssh_exception import SSHException
+
 
 reconnectOnException = retry(
-    caughtExceptions=(OSError, socket.timeout), onExceptionMember="handleException"
+    caughtExceptions=(OSError, socket.timeout, SSHException),
+    onExceptionMember="handleException",
+    sleepAmount=5.0,
 )
 
 
