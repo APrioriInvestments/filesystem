@@ -132,7 +132,9 @@ class SftpFileSystem(FileSystem):
                 self._client.close()
 
             except Exception:
-                self._logger.exception("INFO: Failed to close client on delete:")
+                # This tends to fail because paramiko is trying to log,
+                # but logging has already been torn down
+                pass
 
             finally:
                 self._client = None
@@ -142,7 +144,8 @@ class SftpFileSystem(FileSystem):
                 self._transport.close()
 
             except Exception:
-                self._logger.exception("INFO: Failed to close transport on delete:")
+                # Again, this is best-effort so we can swallow errors
+                pass
 
             finally:
                 self._transport = None
